@@ -107,7 +107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1b63b84f2285c7f4aa7cb8a04d3ccbef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FruitPickup
-  scoreValue: 10
+  scoreValue: 20
 --- !u!50 &7595305829235917083
 Rigidbody2D:
   serializedVersion: 5

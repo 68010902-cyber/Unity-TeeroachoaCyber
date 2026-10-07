@@ -5,6 +5,8 @@ using TMPro;
 
 public class LoginManager : MonoBehaviour
 {
+    private const string LoginSceneName = "LogINScene";
+
     [Header("Login UI")]
     public TMP_InputField usernameInput;
     public TMP_Dropdown difficultyDropdown;
@@ -25,6 +27,13 @@ public class LoginManager : MonoBehaviour
 
     private void Awake()
     {
+        if (!IsLoginScene())
+        {
+            enabled = false;
+            return;
+        }
+        
+        GameData.ResetForNewPlayer();
         AutoBindUi();
 
         if (startButton != null)
@@ -60,6 +69,9 @@ public class LoginManager : MonoBehaviour
 
     public void OnPlayPressed()
     {
+        if (!IsLoginScene())
+            return;
+
         AutoBindUi();
 
         GameData.ResetForNewPlayer();
@@ -83,5 +95,10 @@ public class LoginManager : MonoBehaviour
         {
             SceneManager.LoadScene(gameSceneName);
         }
+    }
+
+    private bool IsLoginScene()
+    {
+        return gameObject.scene.name == LoginSceneName;
     }
 }
