@@ -1,5 +1,7 @@
+
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -11,10 +13,18 @@ public class PlayerMovement : MonoBehaviour
     public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer;
 
+    [Header("Dash - ระบบพุ่งแนวนอน")]
+    [SerializeField] private float dashSpeed = 1000f;
+    [SerializeField] private float dashDuration = 0.25f;
+    [SerializeField] private float dashCooldown = 0.8f;
+
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
     private Animator animator;
+
     private bool isGrounded;
+    private bool isDashing;
+    private float nextDashTime;
 
     private void Awake()
     {
@@ -24,75 +34,106 @@ public class PlayerMovement : MonoBehaviour
 
         if (rb == null)
         {
-            Debug.LogError("PlayerMovement ต้องใช้ Rigidbody2D บน GameObject ตัวละคร");
+            Debug.LogError("ไม่พบ Rigidbody2D บนตัวละคร");
+            enabled = false;
             return;
         }
 
         rb.gravityScale = 1f;
         rb.freezeRotation = true;
-        rb.velocity = Vector2.zero;
 
         if (groundLayer.value == 0)
             groundLayer = LayerMask.GetMask("Ground");
-
-        if (animator != null)
-        {
-            animator.SetBool("IsRunning", false);
-            animator.SetBool("IsJumping", false);
-        }
     }
 
     private void Update()
     {
-        if (rb == null)
-            return;
+        if (rb == null) return;
 
-        isGrounded = Physics2D.OverlapCircle((Vector2)transform.position + Vector2.down * 0.6f, groundCheckRadius, groundLayer);
+        isGrounded = Physics2D.OverlapCircle(
+            (Vector2)transform.position + Vector2.down * 0.6f,
+            groundCheckRadius,
+            groundLayer
+        );
 
         float moveInput = 0f;
-
-        if (Keyboard.current != null)
-        {
-            if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed)
-                moveInput = -1f;
-            if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed)
-                moveInput = 1f;
-        }
-        else
-        {
-            if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-                moveInput = -1f;
-            if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-                moveInput = 1f;
-        }
-
         bool jumpPressed = false;
+        bool dashLeft = false;
+        bool dashRight = false;
 
         if (Keyboard.current != null)
         {
-            jumpPressed = Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.wKey.wasPressedThisFrame || Keyboard.current.upArrowKey.wasPressedThisFrame;
+            var keyboard = Keyboard.current;
+
+            if (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)
+                moveInput = -1f;
+
+            if (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)
+                moveInput = 1f;
+
+            jumpPressed =
+                keyboard.spaceKey.wasPressedThisFrame ||
+                keyboard.wKey.wasPressedThisFrame ||
+                keyboard.upArrowKey.wasPressedThisFrame;
+
+            bool shift =
+                keyboard.leftShiftKey.isPressed ||
+                keyboard.rightShiftKey.isPressed;
+
+            dashLeft = shift &&
+                (keyboard.aKey.wasPressedThisFrame ||
+                 keyboard.leftArrowKey.wasPressedThisFrame);
+
+            dashRight = shift &&
+                (keyboard.dKey.wasPressedThisFrame ||
+                 keyboard.rightArrowKey.wasPressedThisFrame);
         }
-        else
+
+        if (!isDashing)
         {
-            jumpPressed = Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow);
+            if (dashLeft && Time.time >= nextDashTime)
+                StartCoroutine(Dash(-1));
+
+            else if (dashRight && Time.time >= nextDashTime)
+                StartCoroutine(Dash(1));
+
+            if (jumpPressed && isGrounded)
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+
+            if (!isDashing)
+                rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
         }
 
-        if (jumpPressed && isGrounded)
+        if (spriteRenderer != null && moveInput != 0)
+            spriteRenderer.flipX = moveInput < 0;
+
+        if (animator != null && !isDashing)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-        }
-
-        bool isRunning = Mathf.Abs(moveInput) > 0.01f;
-        rb.velocity = new Vector2(moveInput * moveSpeed, rb.velocity.y);
-
-        if (spriteRenderer != null)
-            spriteRenderer.flipX = moveInput < 0f;
-
-        if (animator != null)
-        {
-            animator.SetBool("IsRunning", isRunning);
+            animator.SetBool("IsRunning", Mathf.Abs(moveInput) > 0.01f);
             animator.SetBool("IsJumping", !isGrounded);
         }
     }
-}
 
+    private IEnumerator Dash(int direction)
+    {
+        isDashing = true;
+        nextDashTime = Time.time + dashCooldown;
+
+        // ล็อกการเคลื่อนที่ในแนวตั้งชั่วคราว
+        float originalGravity = rb.gravityScale;
+        rb.gravityScale = 0f;
+        rb.velocity = new Vector2(direction * dashSpeed, 0f);
+
+        if (spriteRenderer != null)
+            spriteRenderer.flipX = direction < 0;
+
+        Debug.Log("Dash direction: " + direction +
+                  " | Speed: " + dashSpeed);
+
+        yield return new WaitForSeconds(dashDuration);
+
+        rb.gravityScale = originalGravity;
+        rb.velocity = new Vector2(0f, rb.velocity.y);
+        isDashing = false;
+    }
+}

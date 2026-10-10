@@ -24,6 +24,7 @@ public static class GameData
     public static string username = "Player";
     public static int score;
     public static int bestScore;
+    public static int combo;
     public static float timeRemaining = MatchDurationSeconds;
     public static FruitSpeedLevel selectedLevel = FruitSpeedLevel.Normal;
     public static Sprite selectedBackgroundSprite;
@@ -34,6 +35,7 @@ public static class GameData
         username = "Player";
         score = 0;
         bestScore = 0;
+        combo = 0;
         timeRemaining = MatchDurationSeconds;
         selectedLevel = FruitSpeedLevel.Normal;
         runHistory.Clear();

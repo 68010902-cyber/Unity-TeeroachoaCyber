@@ -10,10 +10,19 @@ public class FruitPickup : MonoBehaviour
         TryCollect(other.gameObject);
     }
 
-    private void OnCollisionEnter2D(Collision2D collision)
+    
+private void OnCollisionEnter2D(Collision2D collision)
+{
+    if (collision.gameObject.CompareTag("Ground"))
     {
-        TryCollect(collision.gameObject);
+        GameData.combo = 0;
+        Debug.Log("Fruit hit ground! Combo reset to 0.");
+        Destroy(gameObject);
+        return;
     }
+
+    TryCollect(collision.gameObject);
+}
 
     private void TryCollect(GameObject other)
     {
@@ -24,10 +33,43 @@ public class FruitPickup : MonoBehaviour
             return;
 
         collected = true;
+
+        // เพิ่มคะแนน
         GameData.score += scoreValue;
+
+        // เพิ่ม Combo
+        GameData.combo++;
+
         GameData.UpdateBestScore();
-        Debug.Log("Picked fruit: +" + scoreValue + " score");
+
+        // แสดงข้อความใน Console
+        ShowComboMessage();
+
+        Debug.Log(
+            "Picked fruit: +" + scoreValue +
+            " score | Combo: " + GameData.combo
+        );
 
         Destroy(gameObject);
     }
+
+    private void ShowComboMessage()
+{
+    if (ComboFeedback.Instance == null)
+        return;
+
+    if (GameData.combo == 1)
+    {
+        ComboFeedback.Instance.ShowMessage("NICE!");
+    }
+    else if (GameData.combo == 2)
+    {
+        ComboFeedback.Instance.ShowMessage("EXCELLENT!");
+    }
+    else if (GameData.combo >= 3)
+    {
+        ComboFeedback.Instance.ShowMessage("PERFECT!");
+    }
+}
+
 }
